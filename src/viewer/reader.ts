@@ -1,0 +1,158 @@
+import { type Sentence, ttsTextFor } from "./segment";
+
+export type ReaderState = "idle" | "generating" | "playing" | "paused";
+
+export interface ReaderCallbacks {
+  onState(state: ReaderState): void;
+  /** null = nothing highlighted (stopped / finished). */
+  onSentence(index: number | null): void;
+  onError(message: string): void;
+}
+
+const LOOKAHEAD = 2;
+
+export class Reader {
+  private audio = new Audio();
+  private cache = new Map<number, Promise<Blob>>();
+  private currentUrl: string | null = null;
+  private epoch = 0;
+  private prefetching = false;
+  index = -1;
+  state: ReaderState = "idle";
+
+  constructor(
+    private synthesize: (text: string) => Promise<Blob>,
+    private sentences: Sentence[],
+    private fullText: string,
+    private cb: ReaderCallbacks,
+  ) {
+    this.audio.preservesPitch = true;
+    this.audio.addEventListener("ended", () => {
+      void this.playFrom(this.index + 1);
+    });
+    this.audio.addEventListener("error", () => {
+      if (this.state === "playing") this.cb.onError("Audio playback failed.");
+    });
+  }
+
+  get length(): number {
+    return this.sentences.length;
+  }
+
+  setSpeed(speed: number): void {
+    this.audio.playbackRate = speed;
+    this.audio.defaultPlaybackRate = speed;
+  }
+
+  /** Call when the voice changes: cached audio is for the old voice. */
+  invalidateCache(): void {
+    this.cache.clear();
+  }
+
+  private setState(state: ReaderState): void {
+    this.state = state;
+    this.cb.onState(state);
+  }
+
+  private textFor(index: number, fromOffset?: number): string {
+    const s = this.sentences[index];
+    return s ? ttsTextFor(this.fullText, s, fromOffset) : "";
+  }
+
+  /** Start reading at sentence `index`; optionally mid-sentence at `fromOffset`. */
+  async playFrom(index: number, fromOffset?: number): Promise<void> {
+    const ep = ++this.epoch;
+    this.audio.pause();
+
+    // Skip past sentences with nothing readable.
+    while (index < this.sentences.length && this.textFor(index) === "") index++;
+    if (index >= this.sentences.length) {
+      this.stop();
+      return;
+    }
+
+    this.index = index;
+    this.cb.onSentence(index);
+    this.setState("generating");
+
+    try {
+      // A mid-sentence start is a one-off — generate it directly, uncached.
+      const blob =
+        fromOffset !== undefined
+          ? await this.synthesize(this.textFor(index, fromOffset))
+          : await this.ensureCached(index);
+      if (ep !== this.epoch) return;
+
+      if (this.currentUrl) URL.revokeObjectURL(this.currentUrl);
+      this.currentUrl = URL.createObjectURL(blob);
+      this.audio.src = this.currentUrl;
+      this.audio.playbackRate = this.audio.defaultPlaybackRate;
+      await this.audio.play();
+      if (ep !== this.epoch) return;
+      this.setState("playing");
+      this.prefetch();
+    } catch (err) {
+      if (ep !== this.epoch) return;
+      this.setState("idle");
+      this.cb.onError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  private ensureCached(index: number): Promise<Blob> {
+    let promise = this.cache.get(index);
+    if (!promise) {
+      promise = this.synthesize(this.textFor(index));
+      this.cache.set(index, promise);
+      promise.catch(() => this.cache.delete(index));
+    }
+    return promise;
+  }
+
+  private prefetch(): void {
+    if (this.prefetching) return;
+    this.prefetching = true;
+    try {
+      for (let i = this.index + 1; i <= this.index + LOOKAHEAD; i++) {
+        if (i >= this.sentences.length) break;
+        if (this.textFor(i) !== "") void this.ensureCached(i).catch(() => {});
+      }
+      // Drop entries far outside the reading window.
+      for (const key of this.cache.keys()) {
+        if (key < this.index - 1 || key > this.index + LOOKAHEAD + 1) {
+          this.cache.delete(key);
+        }
+      }
+    } finally {
+      this.prefetching = false;
+    }
+  }
+
+  toggle(): void {
+    if (this.state === "playing") {
+      this.audio.pause();
+      this.setState("paused");
+    } else if (this.state === "paused") {
+      void this.audio.play().then(() => this.setState("playing"));
+    }
+  }
+
+  next(): void {
+    if (this.index >= 0) void this.playFrom(this.index + 1);
+  }
+
+  prev(): void {
+    if (this.index > 0) void this.playFrom(this.index - 1);
+  }
+
+  stop(): void {
+    this.epoch++;
+    this.audio.pause();
+    this.audio.removeAttribute("src");
+    if (this.currentUrl) {
+      URL.revokeObjectURL(this.currentUrl);
+      this.currentUrl = null;
+    }
+    this.setState("idle");
+    this.cb.onSentence(null);
+  }
+}

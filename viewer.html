@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Read Aloud PDF</title>
+    <link rel="stylesheet" href="/src/viewer/style.css" />
+  </head>
+  <body>
+    <header id="toolbar">
+      <button id="open-btn" title="Open a PDF file">📂 Open PDF</button>
+      <input id="file-input" type="file" accept="application/pdf,.pdf" hidden />
+      <span id="doc-title" class="doc-title"></span>
+      <div class="spacer"></div>
+      <button id="prev-btn" title="Previous sentence" disabled>⏮</button>
+      <button id="play-btn" title="Play / pause (Space)" disabled>▶️ Read</button>
+      <button id="next-btn" title="Next sentence" disabled>⏭</button>
+      <button id="stop-btn" title="Stop" disabled>⏹</button>
+      <label class="speed-label">
+        <span id="speed-value">1.0×</span>
+        <input id="speed" type="range" min="0.5" max="3" step="0.1" value="1" title="Reading speed" />
+      </label>
+      <select id="voice" title="Voice"></select>
+    </header>
+    <div id="status-bar" hidden>
+      <span id="status-text"></span>
+      <progress id="status-progress" max="100" value="0" hidden></progress>
+    </div>
+    <main id="viewer-container">
+      <div id="drop-hint">
+        <h1>Read Aloud PDF</h1>
+        <p>Open a PDF (or drop one here), then click any word to start reading from it —<br />
+        or just press <strong>Read</strong> to hear the whole document.</p>
+        <p class="fine-print">The voice runs entirely on your machine. First use downloads the
+        voice model (~300&nbsp;MB, one time); after that it works offline.</p>
+      </div>
+      <div id="pages"></div>
+    </main>
+    <script type="module" src="/src/viewer/main.ts"></script>
+  </body>
+</html>

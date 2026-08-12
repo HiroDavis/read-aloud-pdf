@@ -1,0 +1,22 @@
+{
+  "name": "read-aloud-pdf",
+  "version": "0.1.0",
+  "description": "Chrome extension that reads PDFs aloud with a natural, fully local Kokoro voice",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/copy-ort.mjs"
+  },
+  "dependencies": {
+    "kokoro-js": "1.2.1",
+    "pdfjs-dist": "6.2.108"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.2.5",
+    "typescript": "7.0.2",
+    "vite": "8.2.1"
+  }
+}
