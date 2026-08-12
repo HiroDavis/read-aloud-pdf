@@ -12,10 +12,16 @@ export default defineConfig({
         viewer: resolve(import.meta.dirname, "viewer.html"),
         background: resolve(import.meta.dirname, "src/background.ts"),
       },
+      // Bundling breaks the emscripten-generated espeak code inside
+      // `phonemizer` (its embedded voice data fails to load, giving
+      // "Invalid language identifier … Should be one of: ."). Ship the stock
+      // file unmodified and import it at runtime instead.
+      external: ["phonemizer"],
       output: {
         // The service worker must live at a stable path referenced by manifest.json.
         entryFileNames: (chunk) =>
           chunk.name === "background" ? "background.js" : "assets/[name]-[hash].js",
+        paths: { phonemizer: "../phonemizer.js" },
       },
     },
   },

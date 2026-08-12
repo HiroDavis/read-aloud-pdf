@@ -49,7 +49,11 @@ export class PdfView {
   }
 
   async init(): Promise<void> {
-    const targetWidth = Math.min(900, this.container.clientWidth - 48);
+    // The container can measure 0 if layout hasn't settled yet — fall back
+    // to the viewport and clamp so the scale never goes non-positive.
+    const measured =
+      this.container.clientWidth || document.documentElement.clientWidth || 948;
+    const targetWidth = Math.min(900, Math.max(320, measured - 48));
     for (let i = 0; i < this.pdf.doc.numPages; i++) {
       const page = await this.pdf.getPage(i);
       const base = page.getViewport({ scale: 1 });
@@ -223,7 +227,16 @@ export class PdfView {
       rect.top < containerRect.top + margin ||
       rect.bottom > containerRect.bottom - margin
     ) {
-      target.scrollIntoView({ block: "center", behavior: "smooth" });
+      const top =
+        this.container.scrollTop +
+        (rect.top - containerRect.top) -
+        this.container.clientHeight * 0.4;
+      // Smooth scrolling animation frames don't run in hidden tabs; jump
+      // instantly there so read-along position tracking still works.
+      this.container.scrollTo({
+        top: Math.max(0, top),
+        behavior: document.hidden ? "auto" : "smooth",
+      });
     }
   }
 }

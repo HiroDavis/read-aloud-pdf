@@ -256,3 +256,22 @@ const fileParam = new URLSearchParams(location.search).get("file");
 if (fileParam) {
   void openPdf({ url: fileParam });
 }
+
+// Debug handle for automated testing; not part of the UI surface.
+(window as unknown as Record<string, unknown>)["__app"] = {
+  get pdf() {
+    return pdf;
+  },
+  get reader() {
+    return reader;
+  },
+  get view() {
+    return view;
+  },
+  get sentences() {
+    return sentences;
+  },
+  get modelReady() {
+    return modelReady;
+  },
+};

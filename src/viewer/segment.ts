@@ -12,7 +12,12 @@ export function segmentSentences(text: string): Sentence[] {
   const segmenter = new Intl.Segmenter("en", { granularity: "sentence" });
   const out: Sentence[] = [];
 
-  for (const seg of segmenter.segment(text)) {
+  // PDFs break lines every ~60 characters; the segmenter would treat each
+  // line as a sentence. Segment a same-length copy with newlines flattened
+  // to spaces so offsets stay valid but only real terminators split.
+  const flattened = text.replace(/\n/g, " ");
+
+  for (const seg of segmenter.segment(flattened)) {
     let start = seg.index;
     let end = seg.index + seg.segment.length;
     // Trim whitespace off both ends, keeping offsets in sync.

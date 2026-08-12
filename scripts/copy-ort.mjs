@@ -12,3 +12,8 @@ for (const f of readdirSync(src)) {
     console.log(`copied ${f}`);
   }
 }
+
+// phonemizer is kept external to the bundle (see vite.config.ts) — ship the
+// stock file so the runtime import "../phonemizer.js" resolves.
+cpSync("node_modules/phonemizer/dist/phonemizer.js", "public/phonemizer.js");
+console.log("copied phonemizer.js");
