@@ -147,7 +147,9 @@ body {
 .textLayer .markedContent { display: contents; }
 .textLayer ::selection { background: rgba(66, 133, 244, 0.35); color: transparent; }
 
+/* The text layer's own text must stay transparent — the canvas below draws
+   the real glyphs. Only paint a background. */
 ::highlight(reading) {
   background-color: rgba(255, 213, 79, 0.45);
-  color: #000;
+  color: transparent;
 }
