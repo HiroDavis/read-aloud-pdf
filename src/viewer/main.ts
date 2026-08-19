@@ -28,6 +28,7 @@ const voiceSelect = $<HTMLSelectElement>("voice");
 const statusBar = $("status-bar");
 const statusText = $("status-text");
 const statusProgress = $<HTMLProgressElement>("status-progress");
+const grantBtn = $<HTMLButtonElement>("grant-btn");
 const container = $("viewer-container");
 const pagesEl = $("pages");
 const dropHint = $("drop-hint");
@@ -65,6 +66,34 @@ function showStatus(message: string, percent: number | null = null): void {
 
 function hideStatus(): void {
   statusBar.hidden = true;
+  grantBtn.hidden = true;
+}
+
+/** chrome.permissions exists only when running as an installed extension. */
+function chromePermissions(): typeof chrome.permissions | null {
+  return typeof chrome !== "undefined" && chrome.permissions
+    ? chrome.permissions
+    : null;
+}
+
+/**
+ * Fetching PDFs from arbitrary sites needs the optional host permission.
+ * Offer a one-click grant, then retry the same URL.
+ */
+async function offerHostPermission(url: string): Promise<boolean> {
+  const permissions = chromePermissions();
+  if (!permissions) return false;
+  if (await permissions.contains({ origins: ["<all_urls>"] })) return false;
+  showStatus("This PDF is on a website Chrome hasn't allowed the reader to reach yet.");
+  grantBtn.hidden = false;
+  grantBtn.onclick = async () => {
+    const granted = await permissions.request({ origins: ["<all_urls>"] });
+    if (granted) {
+      grantBtn.hidden = true;
+      void openPdf({ url });
+    }
+  };
+  return true;
 }
 
 function startModelLoad(): void {
@@ -159,16 +188,27 @@ async function openPdf(source: PdfSource): Promise<void> {
     // Start fetching the voice model right away so it's warm by first play.
     startModelLoad();
 
+    // ?pos=N deep-links a sentence (shareable position); otherwise fall back
+    // to wherever the user last stopped in this document.
+    const urlPos = Number(new URLSearchParams(location.search).get("pos"));
     const saved = Number(
       localStorage.getItem(`pos:${loaded.fingerprint}`) ?? "-1",
     );
-    if (saved > 0 && saved < sentences.length) {
-      reader.index = saved;
-      const s = sentences[saved];
-      if (s) void view.scrollToOffset(s.start);
+    const start =
+      Number.isInteger(urlPos) && urlPos >= 0 && urlPos < sentences.length
+        ? urlPos
+        : saved;
+    if (start > 0 && start < sentences.length) {
+      reader.index = start;
+      const s = sentences[start];
+      if (s) {
+        view.setHighlight(s.start, s.end);
+        void view.scrollToOffset(s.start);
+      }
       showStatus("Resuming where you left off — press Read to continue.");
     }
   } catch (err) {
+    if ("url" in source && (await offerHostPermission(source.url))) return;
     showStatus(
       `Could not open PDF: ${err instanceof Error ? err.message : String(err)}`,
     );

@@ -39,6 +39,14 @@ one it falls back to a smaller CPU model.
   companion app.
 - **Scanned PDFs** (no text layer) — OCR is not implemented yet.
 
+## Publishing to the Chrome Web Store
+
+`npm run build && npm run zip` produces `read-aloud-pdf-<version>.zip` for
+upload. Listing copy, permission justifications, and graphic assets live in
+[store-assets/STORE_LISTING.md](store-assets/STORE_LISTING.md). Install-time
+permissions are only `contextMenus`; fetching PDFs from arbitrary URLs uses an
+optional host permission granted at runtime.
+
 ## Development
 
 ```bash

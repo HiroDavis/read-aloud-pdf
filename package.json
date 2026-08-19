@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "npm run typecheck && vite build",
     "typecheck": "tsc --noEmit",
+    "zip": "cd dist && zip -qr ../read-aloud-pdf-$npm_package_version.zip . -x '*.DS_Store' -x 'assets/ort-wasm*' && cd .. && ls -la read-aloud-pdf-$npm_package_version.zip",
     "postinstall": "node scripts/copy-ort.mjs"
   },
   "dependencies": {

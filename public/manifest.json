@@ -3,15 +3,25 @@
   "name": "Read Aloud PDF (Kokoro)",
   "version": "0.1.0",
   "description": "Read PDFs aloud with a natural AI voice that runs entirely on your machine. Click a word to start there. Free, offline, private.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
-    "default_title": "Open the PDF reader"
+    "default_title": "Open the PDF reader",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["contextMenus", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": ["contextMenus"],
+  "optional_host_permissions": ["<all_urls>"],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   }
