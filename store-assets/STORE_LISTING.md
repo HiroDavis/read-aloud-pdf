@@ -14,10 +14,20 @@ Upload `read-aloud-pdf-0.1.0.zip` (produced by `npm run build && npm run zip`).
 > Listen to any PDF with a genuinely natural voice — generated locally on your
 > computer, not in the cloud.
 >
-> ▶ HOW IT WORKS
-> Open a PDF in the reader, click any word, and it starts reading from that
-> word with a synchronized highlight that follows along. Or press Read to hear
-> the whole document from the beginning.
+> ▶ OPENING A PDF
+> 1. Already viewing a PDF in Chrome? Just click the extension's toolbar icon
+>    (pin it from the puzzle-piece menu for one-click access) — the document
+>    opens in the reader automatically.
+> 2. On any other page, clicking the icon opens the reader with an
+>    "Open PDF" button — pick a file from your computer, or simply drag &
+>    drop a PDF onto the window.
+> 3. You can also right-click any link to a PDF and choose
+>    "Read aloud with Kokoro."
+>
+> ▶ READING
+> Click any word and it starts reading from that word, with a synchronized
+> highlight that follows along. Or press Read to hear the whole document from
+> the beginning. Space pauses; the arrow keys skip a sentence.
 >
 > ✔ Natural neural voice (Kokoro-82M) running 100% on-device via WebGPU
 > ✔ Click any word to start reading from it
