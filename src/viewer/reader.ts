@@ -16,6 +16,11 @@ const LOOKAHEAD = 8;
 
 export class Reader {
   private audio = new Audio();
+  // Route playback through one persistent AudioContext so the output pipeline
+  // (Bluetooth especially) stays warm across clip boundaries — a fresh sink
+  // per clip re-primes AirPods and adds a fixed pause per sentence.
+  private ctx = new AudioContext();
+  private srcNode: MediaElementAudioSourceNode;
   private cache = new Map<number, Promise<Blob>>();
   private currentUrl: string | null = null;
   private epoch = 0;
@@ -31,6 +36,8 @@ export class Reader {
     private fullText: string,
     private cb: ReaderCallbacks,
   ) {
+    this.srcNode = this.ctx.createMediaElementSource(this.audio);
+    this.srcNode.connect(this.ctx.destination);
     this.audio.preservesPitch = true;
     this.audio.addEventListener("ended", () => {
       this.endedAt = performance.now();
@@ -78,6 +85,9 @@ export class Reader {
   /** Start reading at sentence `index`; optionally mid-sentence at `fromOffset`. */
   async playFrom(index: number, fromOffset?: number): Promise<void> {
     const ep = ++this.epoch;
+    // Autoplay policy starts the context suspended; the first playFrom runs in
+    // a user-gesture context, which is what resume() needs.
+    if (this.ctx.state === "suspended") void this.ctx.resume();
     this.audio.pause();
 
     // Skip past sentences with nothing readable.
@@ -152,6 +162,7 @@ export class Reader {
       this.audio.pause();
       this.setState("paused");
     } else if (this.state === "paused") {
+      if (this.ctx.state === "suspended") void this.ctx.resume();
       void this.audio.play().then(() => this.setState("playing"));
     }
   }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Read Aloud PDF (Kokoro)",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Read PDFs aloud with a natural AI voice that runs entirely on your machine. Click a word to start there. Free, offline, private.",
   "icons": {
     "16": "icons/icon16.png",

@@ -1,6 +1,6 @@
 {
   "name": "read-aloud-pdf",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Chrome extension that reads PDFs aloud with a natural, fully local Kokoro voice",
   "private": true,
   "type": "module",
