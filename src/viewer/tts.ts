@@ -21,8 +21,8 @@ const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
 
 // Kokoro pads generous silence around each clip; trim it so back-to-back
 // sentences flow, keeping just enough tail for a natural pause.
-const HEAD_PAD_S = 0.03;
-const TAIL_PAD_S = 0.15;
+const HEAD_PAD_S = 0.015;
+const TAIL_PAD_S = 0.06;
 
 function trimSilence(samples: Float32Array, sampleRate: number): Float32Array {
   let peak = 0;

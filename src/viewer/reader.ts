@@ -23,6 +23,8 @@ export class Reader {
   index = -1;
   state: ReaderState = "idle";
 
+  private endedAt = 0;
+
   constructor(
     private synthesize: (text: string, skip?: () => boolean) => Promise<Blob>,
     private sentences: Sentence[],
@@ -31,7 +33,18 @@ export class Reader {
   ) {
     this.audio.preservesPitch = true;
     this.audio.addEventListener("ended", () => {
+      this.endedAt = performance.now();
       void this.playFrom(this.index + 1);
+    });
+    // Boundary gap meter: wall-clock silence between clips, visible in the
+    // console so a listener's install can be diagnosed in the field.
+    this.audio.addEventListener("playing", () => {
+      if (this.endedAt > 0) {
+        console.log(
+          `[read-aloud] sentence ${this.index}: boundary gap ${Math.round(performance.now() - this.endedAt)}ms`,
+        );
+        this.endedAt = 0;
+      }
     });
     this.audio.addEventListener("error", () => {
       if (this.state === "playing") this.cb.onError("Audio playback failed.");
@@ -153,6 +166,7 @@ export class Reader {
 
   stop(): void {
     this.epoch++;
+    this.endedAt = 0;
     this.audio.pause();
     this.audio.removeAttribute("src");
     if (this.currentUrl) {
