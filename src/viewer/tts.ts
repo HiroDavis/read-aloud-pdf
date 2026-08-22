@@ -19,6 +19,28 @@ interface ProgressEvent {
 
 const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
 
+// Kokoro pads generous silence around each clip; trim it so back-to-back
+// sentences flow, keeping just enough tail for a natural pause.
+const HEAD_PAD_S = 0.03;
+const TAIL_PAD_S = 0.15;
+
+function trimSilence(samples: Float32Array, sampleRate: number): Float32Array {
+  let peak = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const a = Math.abs(samples[i]!);
+    if (a > peak) peak = a;
+  }
+  const threshold = Math.max(0.003, peak * 0.01);
+  let first = 0;
+  while (first < samples.length && Math.abs(samples[first]!) < threshold) first++;
+  if (first >= samples.length) return samples;
+  let last = samples.length - 1;
+  while (last > first && Math.abs(samples[last]!) < threshold) last--;
+  const start = Math.max(0, first - Math.round(HEAD_PAD_S * sampleRate));
+  const end = Math.min(samples.length, last + 1 + Math.round(TAIL_PAD_S * sampleRate));
+  return samples.subarray(start, end);
+}
+
 function wavBlob(samples: Float32Array, sampleRate: number): Blob {
   const buf = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(buf);
@@ -106,7 +128,8 @@ export class TtsEngine {
     const run = async (): Promise<Blob> => {
       const tts = await this.load();
       const audio = await tts.generate(text, { voice });
-      return wavBlob(audio.audio as Float32Array, audio.sampling_rate);
+      const samples = trimSilence(audio.audio as Float32Array, audio.sampling_rate);
+      return wavBlob(samples, audio.sampling_rate);
     };
     const result = this.queue.then(run, run);
     this.queue = result.catch(() => {});
