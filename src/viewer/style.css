@@ -51,6 +51,12 @@ body {
 
 .spacer { flex: 1; }
 
+.version {
+  font-size: 11px;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
 .speed-label {
   display: flex;
   align-items: center;

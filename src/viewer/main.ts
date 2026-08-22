@@ -30,6 +30,7 @@ const statusText = $("status-text");
 const statusProgress = $<HTMLProgressElement>("status-progress");
 const grantBtn = $<HTMLButtonElement>("grant-btn");
 const container = $("viewer-container");
+const versionEl = $("version");
 const pagesEl = $("pages");
 const dropHint = $("drop-hint");
 
@@ -214,6 +215,13 @@ async function openPdf(source: PdfSource): Promise<void> {
     );
   }
 }
+
+// The manifest Chrome actually loaded is the ground truth for which build is
+// running; outside the extension (vite dev) there is no manifest.
+versionEl.textContent =
+  typeof chrome !== "undefined" && chrome.runtime?.getManifest
+    ? `v${chrome.runtime.getManifest().version}`
+    : "dev";
 
 // --- Toolbar wiring ---
 
