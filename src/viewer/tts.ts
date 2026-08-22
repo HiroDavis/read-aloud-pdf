@@ -124,8 +124,14 @@ export class TtsEngine {
     return tts;
   }
 
-  synthesize(text: string, voice: VoiceId): Promise<Blob> {
+  /**
+   * `skip` is checked when the job reaches the front of the queue: a queued
+   * generation that is no longer wanted (jump, voice change) rejects instead
+   * of tying up the engine.
+   */
+  synthesize(text: string, voice: VoiceId, skip?: () => boolean): Promise<Blob> {
     const run = async (): Promise<Blob> => {
+      if (skip?.()) throw new Error("no longer needed");
       const tts = await this.load();
       const audio = await tts.generate(text, { voice });
       const samples = trimSilence(audio.audio as Float32Array, audio.sampling_rate);

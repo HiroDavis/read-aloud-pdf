@@ -173,7 +173,7 @@ async function openPdf(source: PdfSource): Promise<void> {
     await view.init();
 
     reader = new Reader(
-      (text) => engine.synthesize(text, currentVoice),
+      (text, skip) => engine.synthesize(text, currentVoice, skip),
       sentences,
       loaded.fullText,
       {

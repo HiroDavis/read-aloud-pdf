@@ -9,7 +9,10 @@ export interface ReaderCallbacks {
   onError(message: string): void;
 }
 
-const LOOKAHEAD = 2;
+// Generation is serialized and can run slower than playback (especially on
+// short sentences and high speeds), so keep a deep buffer: while a long
+// sentence plays, the engine works ahead and builds headroom.
+const LOOKAHEAD = 8;
 
 export class Reader {
   private audio = new Audio();
@@ -21,7 +24,7 @@ export class Reader {
   state: ReaderState = "idle";
 
   constructor(
-    private synthesize: (text: string) => Promise<Blob>,
+    private synthesize: (text: string, skip?: () => boolean) => Promise<Blob>,
     private sentences: Sentence[],
     private fullText: string,
     private cb: ReaderCallbacks,
@@ -77,10 +80,14 @@ export class Reader {
 
     try {
       // A mid-sentence start is a one-off — generate it directly, uncached.
-      const blob =
+      const blobPromise =
         fromOffset !== undefined
-          ? await this.synthesize(this.textFor(index, fromOffset))
-          : await this.ensureCached(index);
+          ? this.synthesize(this.textFor(index, fromOffset))
+          : this.ensureCached(index);
+      // Queue the lookahead behind the current sentence right away so the
+      // engine rolls straight into it instead of idling until playback starts.
+      this.prefetch();
+      const blob = await blobPromise;
       if (ep !== this.epoch) return;
 
       if (this.currentUrl) URL.revokeObjectURL(this.currentUrl);
@@ -90,7 +97,6 @@ export class Reader {
       await this.audio.play();
       if (ep !== this.epoch) return;
       this.setState("playing");
-      this.prefetch();
     } catch (err) {
       if (ep !== this.epoch) return;
       this.setState("idle");
@@ -101,7 +107,8 @@ export class Reader {
   private ensureCached(index: number): Promise<Blob> {
     let promise = this.cache.get(index);
     if (!promise) {
-      promise = this.synthesize(this.textFor(index));
+      // Evicted from the cache (jump, voice change) means no longer wanted.
+      promise = this.synthesize(this.textFor(index), () => this.cache.get(index) !== promise);
       this.cache.set(index, promise);
       promise.catch(() => this.cache.delete(index));
     }
