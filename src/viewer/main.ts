@@ -8,6 +8,7 @@ import {
   type Sentence,
 } from "./segment";
 import { TtsEngine, type VoiceId } from "./tts";
+import { pdfOriginPattern } from "./remoteUrl";
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -78,17 +79,21 @@ function chromePermissions(): typeof chrome.permissions | null {
 }
 
 /**
- * Fetching PDFs from arbitrary sites needs the optional host permission.
- * Offer a one-click grant, then retry the same URL.
+ * Fetching a remote PDF needs an optional host permission — requested for
+ * that one site only (see pdfOriginPattern), then the same URL is retried.
  */
 async function offerHostPermission(url: string): Promise<boolean> {
   const permissions = chromePermissions();
   if (!permissions) return false;
-  if (await permissions.contains({ origins: ["<all_urls>"] })) return false;
-  showStatus("This PDF is on a website Chrome hasn't allowed the reader to reach yet.");
+  const origin = pdfOriginPattern(url);
+  if (!origin) return false;
+  if (await permissions.contains({ origins: [origin] })) return false;
+  showStatus(
+    `This PDF is on ${new URL(url).host}, which Chrome hasn't allowed the reader to reach yet.`,
+  );
   grantBtn.hidden = false;
   grantBtn.onclick = async () => {
-    const granted = await permissions.request({ origins: ["<all_urls>"] });
+    const granted = await permissions.request({ origins: [origin] });
     if (granted) {
       grantBtn.hidden = true;
       void openPdf({ url });
@@ -210,8 +215,14 @@ async function openPdf(source: PdfSource): Promise<void> {
     }
   } catch (err) {
     if ("url" in source && (await offerHostPermission(source.url))) return;
+    // The grant covers only the link's own site, so a redirect to another
+    // site still fails here — by design. Say so rather than widen the grant.
+    const hint =
+      "url" in source && pdfOriginPattern(source.url)
+        ? " — if this link redirects to a different site, open the PDF's final address instead."
+        : "";
     showStatus(
-      `Could not open PDF: ${err instanceof Error ? err.message : String(err)}`,
+      `Could not open PDF: ${err instanceof Error ? err.message : String(err)}${hint}`,
     );
   }
 }
@@ -302,7 +313,10 @@ document.addEventListener("drop", async (event) => {
 
 const fileParam = new URLSearchParams(location.search).get("file");
 if (fileParam) {
-  void openPdf({ url: fileParam });
+  // Normalise http(s) links (the permission is derived from the same parse);
+  // anything else is passed through for pdf.js / Chrome's file-URL toggle to judge.
+  const remote = pdfOriginPattern(fileParam) ? new URL(fileParam).href : fileParam;
+  void openPdf({ url: remote });
 }
 
 // Debug handle for automated testing; not part of the UI surface.

@@ -44,8 +44,10 @@ one it falls back to a smaller CPU model.
 `npm run build && npm run zip` produces `read-aloud-pdf-<version>.zip` for
 upload. Listing copy, permission justifications, and graphic assets live in
 [store-assets/STORE_LISTING.md](store-assets/STORE_LISTING.md). Install-time
-permissions are only `contextMenus`; fetching PDFs from arbitrary URLs uses an
-optional host permission granted at runtime.
+permissions are only `contextMenus`; fetching a remote PDF requests an optional
+host permission at runtime for **that PDF's site only** (`src/viewer/remoteUrl.ts`),
+never `<all_urls>`. A link that redirects to a different site therefore fails with a
+hint to open the final address — deliberately, rather than widening the grant.
 
 ## Development
 

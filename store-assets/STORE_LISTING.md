@@ -72,11 +72,13 @@ Upload `read-aloud-pdf-0.1.0.zip` (produced by `npm run build && npm run zip`).
   > Adds one right-click item on links ("Read aloud with Kokoro") so users can
   > send a linked PDF directly to the reader.
 
-- Optional host permission `<all_urls>`:
+- Optional host permissions `http://*/*`, `https://*/*`:
   > Only requested if the user asks the reader to fetch a PDF by URL from a
-  > site that does not allow cross-origin requests. Granted at runtime via a
-  > visible button; never requested at install. Used solely to download that
-  > PDF file for reading. Local files and CORS-enabled URLs work without it.
+  > site that does not allow cross-origin requests — and then only for that
+  > one site (e.g. `https://example.com/*`), never all sites. Granted at
+  > runtime via a visible button; never requested at install. Used solely to
+  > download that PDF file for reading. Local files and CORS-enabled URLs work
+  > without it.
 
 - **Remote code:** None. All executable code (including the ONNX WASM runtime
   and the espeak phonemizer) is packaged in the extension. The extension
